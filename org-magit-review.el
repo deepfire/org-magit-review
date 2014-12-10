@@ -47,7 +47,7 @@
 ;;;
 ;;; O-M-R supports one review per branch -- it persists incomplete reviews in files:
 ;;;
-;;;   ~/org-magit-review-<reponame>-<branch>.org
+;;;   <repo-topdir>/.review-<branch>.org
 ;;;
 ;;; O-M-R caches the commit-branch correspondence, as well as it tracks one default branch
 ;;; per repository.  Sometimes you want to change the default branch, and so you might
@@ -155,11 +155,8 @@
 ;;;
 ;;; Pure
 ;;;
-(defun org-magit-review-file-name (repo-name branch-name)
-  (expand-file-name (concat "~/org-magit-review-" repo-name "-" branch-name ".org")))
-
-(defun org-magit-topdir-repo-name (topdir)
-  (file-name-base (directory-file-name topdir)))
+(defun org-magit-review-file-name (topdir branch-name)
+  (expand-file-name (concat topdir "/.review-" branch-name ".org")))
 
 ;;;
 ;;; Generic tables
@@ -182,22 +179,18 @@
 ;;;
 ;;; Review buffers
 ;;;
-;;  review buffer map :: Repo -> Branch -> Buffer
+;;  review buffer map :: Topdir -> Branch -> Buffer
 (defvar org-magit-review-buffers (make-hash-table :test 'equal))
 
-(defun org-magit-create-review-buffer (repo branch)
-  (let ((review-file (org-magit-review-file-name repo branch)))
-    (find-file review-file)))
+(defun org-magit-review-make-buffer (topdir branch)
+  (find-file (org-magit-review-file-name topdir branch)))
 
-(defun %org-magit-review-buffer (repo-name branch-name)
-  (gethash (cons repo-name branch-name) org-magit-review-buffers))
-
-(defun org-magit-review-ensure-buffer (repo-name branch-name)
-  (let ((b (%org-magit-review-buffer repo-name branch-name)))
+(defun org-magit-review-ensure-buffer (topdir branch)
+  (let ((b (gethash (cons topdir branch) org-magit-review-buffers)))
     (if (and b (buffer-live-p b))
 	b
-	(setf (gethash (cons repo-name branch-name) org-magit-review-buffers)
-	      (org-magit-create-review-buffer repo-name branch-name)))))
+	(setf (gethash (cons topdir branch) org-magit-review-buffers)
+	      (org-magit-review-make-buffer topdir branch)))))
 
 ;;;
 ;;; Review branches
@@ -214,7 +207,7 @@
   (or (gethash topdir org-magit-default-branches)
       (org-magit-set-default-review-branch topdir (magit-read-rev "branch to review"))))
 
-;; XXX: currently only a single branch per repository is supported..
+;; XXX: currently only a single branch per topdir is supported..
 (defun org-magit-review-commit-determine-branch (topdir commit-id)
   (org-magit-review-topdir-determine-branch topdir))
 
@@ -294,12 +287,12 @@
   (insert-string text)
   (forward-line 2))
 
-(defun org-magit-review-add (repo branch commit-desc commit-id author file line selection)
+(defun org-magit-review-add (topdir branch commit-desc commit-id author file line selection)
   (message "branch=%s commit-desc=%s commit-id=%s"
 	   branch commit-desc commit-id)
-  ;; (message "repo=%s branch=%s commit-desc=%s commit-id=%s author='%s' file=%s line=%s sel=%s"
-  ;; 	   repo branch commit-desc commit-id author file line selection)
-  (let ((buffer (org-magit-review-ensure-buffer repo branch)))
+  ;; (message "topdir=%s branch=%s commit-desc=%s commit-id=%s author='%s' file=%s line=%s sel=%s"
+  ;; 	   topdir branch commit-desc commit-id author file line selection)
+  (let ((buffer (org-magit-review-ensure-buffer topdir branch)))
     (magit-mode-display-buffer buffer 'org-magit-review-mode 'pop-to-buffer)
     (with-current-buffer buffer
       (org-magit-review-mode)
@@ -346,10 +339,9 @@
     (when request-default-branch
       (org-magit-set-default-review-branch topdir (magit-read-rev "branch to review")))
     (destructuring-bind (commit-id author commit-desc) (org-magit-review-commit-buffer-parse)
-      (let* ((repo (org-magit-topdir-repo-name topdir))
-	     (branch (org-magit-review-commit-branch topdir commit-id)))
+      (let* ((branch (org-magit-review-commit-branch topdir commit-id)))
 	(flet ((review-add (file line sel)
-		 (org-magit-review-add repo branch commit-desc commit-id author file line sel)))
+		 (org-magit-review-add topdir branch commit-desc commit-id author file line sel)))
 	  (magit-section-action review (type info parent-info)
 	    (hunk ;; the assumption we're in the commit buffer is validated
 	     (let* ((hunk it)
@@ -360,8 +352,8 @@
 			  (chomp-end (if (use-region-p)
 					 (buffer-substring (region-beginning) (region-end))
 					 (chomp-first-line (magit-item-text hunk)))))))
-	       ;; (message "repo=%s branch=%s commit-desc=%s commit-id=%s author='%s' file=%s line=%s sel=%s"
-	       ;; 	      repo branch commit-desc commit-id author file line sel)
+	       ;; (message "topdir=%s branch=%s commit-desc=%s commit-id=%s author='%s' file=%s line=%s sel=%s"
+	       ;; 	      topdir branch commit-desc commit-id author file line sel)
 	       (review-add file line sel)))
 	    (commit-buf
 	     (review-add nil nil nil))
@@ -401,8 +393,7 @@
     (when request-default-branch
       (org-magit-set-default-review-branch topdir (magit-read-rev "branch to review")))
     (let* ((branch   (org-magit-review-topdir-determine-branch topdir))
-	   (repo     (org-magit-topdir-repo-name topdir))
-	   (buffer   (org-magit-review-ensure-buffer repo branch))
+	   (buffer   (org-magit-review-ensure-buffer topdir branch))
 	   (content  (with-current-buffer buffer
 		       (buffer-substring (point-min) (point-max))))
 	   to
