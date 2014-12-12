@@ -49,10 +49,10 @@
 ;;;
 ;;;   <repo-topdir>/.review-<branch>.org
 ;;;
-;;; O-M-R caches the commit-branch correspondence, as well as it tracks one default branch
-;;; per repository.  Sometimes you want to change the default branch, and so you might
-;;; want to either call `org-magit-review-switch-branch' directly, or provide C-u argument
-;;; to `org-magit-review'.
+;;; O-M-R caches the commit-branch correspondence, as well as it tracks one default branch per
+;;; repository.  Sometimes you want to change the default branch, and so you might want to
+;;; either call `org-magit-review-switch-default-branch' directly, or provide C-u argument to
+;;; `org-magit-review'.
 ;;; 
 
 ;;; Code:
@@ -80,7 +80,7 @@
 \\{org-magit-review-mode-map}")
 
 (define-key magit-mode-map (kbd "M-RET")       'org-magit-review)
-(define-key magit-mode-map (kbd "C-c C-r C-b") 'org-magit-review-switch-branch)
+(define-key magit-mode-map (kbd "C-c C-r C-b") 'org-magit-review-switch-default-branch)
 
 ;;;
 ;;; Utils
@@ -374,7 +374,7 @@
   (magit-mode-quit-window))
 
 ;;;###autoload
-(defun org-magit-review-switch-branch ()
+(defun org-magit-review-switch-default-branch ()
   (interactive)
   (let ((topdir (magit-get-top-dir)))
     (unless topdir
