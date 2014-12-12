@@ -290,8 +290,6 @@
   (forward-line 2))
 
 (defun org-magit-review-add (topdir branch commit-desc commit-id author file line selection)
-  (message "branch=%s commit-desc=%s commit-id=%s"
-	   branch commit-desc commit-id)
   ;; (message "topdir=%s branch=%s commit-desc=%s commit-id=%s author='%s' file=%s line=%s sel=%s"
   ;; 	   topdir branch commit-desc commit-id author file line selection)
   (let ((buffer (org-magit-review-ensure-buffer topdir branch)))
