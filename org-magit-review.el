@@ -275,10 +275,14 @@
     (org-entry-put nil "commit-id" commit-id)
     entry))
 
-(defun org-magit-review-ensure-commit-goto-heading (commit-id author commit-desc)
+(defun org-magit-review-ensure-commit-goto-heading (commit-id author branch commit-desc)
   (unless (org-magit-review-this-buffer-option :author)
     (goto-char (point-min))
     (insert-string (format "#+AUTHOR: %s\n" author)))
+  (unless (org-magit-review-this-buffer-option :title)
+    (goto-char (point-min))
+    (forward-line)
+    (insert-string (format "#+TITLE: %s\n\n" branch)))
   (let* ((entry (or (org-find-with-property-value :COMMIT-ID commit-id)
 		    (org-magit-review-insert-commit-heading commit-id author commit-desc)))
 	 (heading (plist-get (second entry) :raw-value)))
@@ -303,7 +307,7 @@
     (magit-mode-display-buffer buffer 'org-magit-review-mode 'pop-to-buffer)
     (with-current-buffer buffer
       (org-magit-review-mode)
-      (org-magit-review-ensure-commit-goto-heading commit-id author commit-desc)
+      (org-magit-review-ensure-commit-goto-heading commit-id author branch commit-desc)
       (org-entry-ensure-fresh-text-input-position)
       (org-magit-review-insert-review-entry-goto-desc-area file line selection)
       (when selection
@@ -399,7 +403,9 @@
       (user-error "Not inside a Git repository"))
     (when request-default-branch
       (org-magit-set-default-review-branch topdir (magit-read-rev "branch to review")))
-    (let* ((branch   (org-magit-review-topdir-determine-branch topdir))
+    (let* ((branch   (if (eq major-mode 'org-magit-review-mode)
+			 (org-magit-review-this-buffer-option :title :fail-if-none)
+			 (org-magit-review-topdir-determine-branch topdir)))
 	   (buffer   (org-magit-review-ensure-buffer topdir branch))
 	   (content  (with-current-buffer buffer
 		       (buffer-substring (point-min) (point-max))))
