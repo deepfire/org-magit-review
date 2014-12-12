@@ -253,7 +253,8 @@
   ;; (message "Adding new review entry for commit '%s'" commit-desc)
   (if (not (org-element-at-point))
       (progn
-	(insert-string (format "#+AUTHOR: %s\n\n" author))
+	(unless (org-magit-review-this-buffer-author)
+	  (insert-string (format "#+AUTHOR: %s\n\n" author)))
 	(org-insert-heading))
       (progn ;; not the first commit in review
 	(goto-char (point-max))
