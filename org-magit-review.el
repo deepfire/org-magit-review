@@ -193,6 +193,9 @@
 	(setf (gethash (cons topdir branch) org-magit-review-buffers)
 	      (org-magit-review-make-buffer topdir branch)))))
 
+(defun org-magit-review-this-buffer-author ()
+  (first (plist-get (org-export--get-inbuffer-options) :author)))
+
 ;;;
 ;;; Review branches
 ;;;
@@ -205,8 +208,10 @@
   (setf (gethash topdir org-magit-default-branches) branch))
 
 (defun org-magit-review-topdir-determine-branch (topdir)
-  (or (gethash topdir org-magit-default-branches)
-      (org-magit-set-default-review-branch topdir (magit-read-rev "branch to review"))))
+  (let* ((default (gethash topdir org-magit-default-branches))
+	 (choice  (magit-read-rev "branch to review" default)))
+    (org-magit-set-default-review-branch topdir choice)
+    choice))
 
 ;; XXX: currently only a single branch per topdir is supported..
 (defun org-magit-review-commit-determine-branch (topdir commit-id)
@@ -399,7 +404,7 @@
 	   to
 	   (washed   (with-temp-buffer
 		       (insert-string content)
-		       (setf to (first (plist-get (org-export--get-inbuffer-options) :author)))
+		       (setf to (org-magit-review-this-buffer-author))
 		       (goto-char (point-min))
 		       (kill-line 2)
 		       (org-delete-property-globally "COMMIT-ID")
