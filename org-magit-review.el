@@ -409,7 +409,8 @@
 			  (org-remove-empty-drawer-at "PROPERTIES" (point)))
 			(point-min) (point-max))
 		       (buffer-substring (point-min) (point-max)))))
-      (compose-mail to (format "Review of branch \"%s\"" branch))
+      (let ((compose-mail-user-agent-warnings nil))
+	(compose-mail to (format "Review of branch \"%s\"" branch)))
       (insert-string (format "Hi!\n\nHere's some comments on the \"%s\" branch:\n\n"
 			     branch))
       (insert-string washed))))
