@@ -193,8 +193,11 @@
 	(setf (gethash (cons topdir branch) org-magit-review-buffers)
 	      (org-magit-review-make-buffer topdir branch)))))
 
-(defun org-magit-review-this-buffer-option (option)
-  (first (plist-get (org-export--get-inbuffer-options) option)))
+(defun org-magit-review-this-buffer-option (option &optional fail-if-none)
+  (let ((ret (first (plist-get (org-export--get-inbuffer-options) option))))
+    (when (and (not ret) fail-if-none)
+      (error "Missing org-magit-review inbuffer option '%s'." option))
+    ret))
 
 ;;;
 ;;; Review branches
@@ -255,13 +258,8 @@
 ;;; Intermediate layer
 ;;;
 (defun org-magit-review-insert-commit-heading (commit-id author commit-desc)
-  ;; (message "Adding new review entry for commit '%s'" commit-desc)
   (if (not (org-element-at-point))
-      (progn
-	(unless (org-magit-review-this-buffer-option :author)
-	  (goto-char (point-min))
-	  (insert-string (format "#+AUTHOR: %s\n" author)))
-	(org-insert-heading))
+      (org-insert-heading)
       (progn ;; not the first commit in review
 	(goto-char (point-max))
 	(unless (bolp)
@@ -278,6 +276,9 @@
     entry))
 
 (defun org-magit-review-ensure-commit-goto-heading (commit-id author commit-desc)
+  (unless (org-magit-review-this-buffer-option :author)
+    (goto-char (point-min))
+    (insert-string (format "#+AUTHOR: %s\n" author)))
   (let* ((entry (or (org-find-with-property-value :COMMIT-ID commit-id)
 		    (org-magit-review-insert-commit-heading commit-id author commit-desc)))
 	 (heading (plist-get (second entry) :raw-value)))
@@ -405,7 +406,7 @@
 	   to
 	   (washed   (with-temp-buffer
 		       (insert-string content)
-		       (setf to (org-magit-review-this-buffer-option :author))
+		       (setf to (org-magit-review-this-buffer-option :author :fail-if-none))
 		       (goto-char (point-min))
 		       (kill-line 2)
 		       (org-delete-property-globally "COMMIT-ID")
