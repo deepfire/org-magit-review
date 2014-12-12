@@ -165,6 +165,7 @@
 (defvar org-magit-review-filename-extension-to-babel-mode-map (make-hash-table :test 'equal))
 
 (dolist (kv '(("c" .   "c")
+	      ("h" .   "c")
 	      ("org" . "org")))
   (setf (gethash (car kv) org-magit-review-filename-extension-to-babel-mode-map)
 	(cdr kv)))
