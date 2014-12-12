@@ -193,8 +193,8 @@
 	(setf (gethash (cons topdir branch) org-magit-review-buffers)
 	      (org-magit-review-make-buffer topdir branch)))))
 
-(defun org-magit-review-this-buffer-author ()
-  (first (plist-get (org-export--get-inbuffer-options) :author)))
+(defun org-magit-review-this-buffer-option (option)
+  (first (plist-get (org-export--get-inbuffer-options) option)))
 
 ;;;
 ;;; Review branches
@@ -258,8 +258,9 @@
   ;; (message "Adding new review entry for commit '%s'" commit-desc)
   (if (not (org-element-at-point))
       (progn
-	(unless (org-magit-review-this-buffer-author)
-	  (insert-string (format "#+AUTHOR: %s\n\n" author)))
+	(unless (org-magit-review-this-buffer-option :author)
+	  (goto-char (point-min))
+	  (insert-string (format "#+AUTHOR: %s\n" author)))
 	(org-insert-heading))
       (progn ;; not the first commit in review
 	(goto-char (point-max))
@@ -404,7 +405,7 @@
 	   to
 	   (washed   (with-temp-buffer
 		       (insert-string content)
-		       (setf to (org-magit-review-this-buffer-author))
+		       (setf to (org-magit-review-this-buffer-option :author))
 		       (goto-char (point-min))
 		       (kill-line 2)
 		       (org-delete-property-globally "COMMIT-ID")
